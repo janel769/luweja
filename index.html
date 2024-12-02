@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luweja Fashion Hub</title>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* Basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: gold;
+            text-decoration: none;
+        }
+
+        #products {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
+        }
+
+        .product {
+            background-color: white;
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 10px;
+            width: 220px;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .product:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .product img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .product button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        #cart-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .modal-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 10px;
+            margin: 20px 0;
+            box-sizing: border-box;
+        }
+
+        #payment-options button:hover {
+            opacity: 0.9;
+        }
+
+        #payment-form input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        #payment-form label {
+            font-weight: bold;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        /* Responsive styling */
+        @media (max-width: 768px) {
+            #products {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+            function formatPrice(price) {
+                return `Ksh ${price.toFixed(2)}`;
+            }
+
+            function addToCart(productName, productPrice) {
+                const existingProduct = cart.find(item => item.name === productName);
+                if (existingProduct) {
+                    existingProduct.quantity++;
+                } else {
+                    cart.push({ name: productName, price: parseFloat(productPrice.replace('Ksh ', '')), quantity: 1 });
+                }
+                updateCart();
+            }
+
+            function updateCart() {
+                const cartItems = document.getElementById('cart-items');
+                cartItems.innerHTML = '';
+                let totalPrice = 0;
+                cart.forEach((item, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        ${item.name} - ${formatPrice(item.price)} x ${item.quantity}
+                        <button onclick="increaseQuantity(${index})">+</button>
+                        <button onclick="decreaseQuantity(${index})">-</button>
+                        <button onclick="removeItem(${index})">Remove</button>
+                    `;
+                    cartItems.appendChild(listItem);
+                    totalPrice += item.price * item.quantity;
+                });
+                const totalElement = document.createElement('p');
+                totalElement.textContent = `Total: ${formatPrice(totalPrice)}`;
+                cartItems.appendChild(totalElement);
+                localStorage.setItem('cart', JSON.stringify(cart));
+            }
+
+            function increaseQuantity(index) {
+                cart[index].quantity++;
+                updateCart();
+            }
+
+            function decreaseQuantity(index) {
+                if (cart[index].quantity > 1) {
+                    cart[index].quantity--;
+                } else {
+                    cart.splice(index, 1);
+                }
+                updateCart();
+            }
+
+            function removeItem(index) {
+                cart.splice(index, 1);
+                updateCart();
+            }
+
+            window.increaseQuantity = increaseQuantity;
+            window.decreaseQuantity = decreaseQuantity;
+            window.removeItem = removeItem;
+
+            function showPaymentForm(method) {
+                const paymentForm = document.getElementById('payment-form');
+                const selectedMethod = document.getElementById('selected-method');
+
+                selectedMethod.textContent = `You selected: ${method}`;
+                paymentForm.style.display = 'block';
+
+                const dummyForm = document.getElementById('dummy-payment-form');
+                dummyForm.onsubmit = function (event) {
+                    event.preventDefault();
+                    alert(`Payment with ${method} is successful!`);
+                    paymentForm.style.display = 'none';
+                    dummyForm.reset();
+                };
+            }
+
+            window.payWithMpesa = function () {
+                showPaymentForm('M-Pesa');
+            };
+
+            window.payWithCard = function () {
+                showPaymentForm('Credit/Debit Card');
+            };
+
+            window.payWithPayPal = function () {
+                showPaymentForm('PayPal');
+            };
+
+            document.querySelectorAll('.product button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const productElement = event.target.parentElement;
+                    const productName = productElement.querySelector('h3').textContent;
+                    const productPrice = productElement.querySelector('.price').textContent;
+                    addToCart(productName, productPrice);
+                });
+            });
+
+            window.openCartModal = function () {
+                document.getElementById('cart-modal').style.display = 'flex';
+            };
+
+            window.closeCartModal = function () {
+                document.getElementById('cart-modal').style.display = 'none';
+            };
+
+            document.getElementById('search-bar').addEventListener('keyup', function () {
+                const query = this.value.toLowerCase();
+                let matchFound = false;
+                document.querySelectorAll('.product').forEach(product => {
+                    const name = product.querySelector('h3').textContent.toLowerCase();
+                    if (name.includes(query)) {
+                        product.style.display = 'block';
+                        matchFound = true;
+                    } else {
+                        product.style.display = 'none';
+                    }
+                });
+                if (!matchFound) {
+                    document.getElementById('no-results').style.display = 'block';
+                } else {
+                    document.getElementById('no-results').style.display = 'none';
+                }
+            });
+
+            updateCart();
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Luweja Fashion Hub</h1>
+        <p>Your destination for trendy clothing</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#products">Shop</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+
+    <input type="text" id="search-bar" class="search-bar" placeholder="Search products...">
+    <p id="no-results" style="display: none; text-align: center; color: #555;">No results found</p>
+
+    <section id="products">
+        <h2>Our Collection</h2>
+
+        <div class="product">
+            <img src="Red-dress.jpeg" alt="Red Dress">
+            <h3>Red Dress</h3>
+            <p class="price">Ksh 1200</p>
+            <button>Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="blue-jacket.jpeg" alt="Blue Jacket">
+            <h3>Blue Jacket</h3>
+            <p class="price">Ksh 2500</p>
+            <button>Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="white-tshirt.png" alt="White T-shirt">
+            <h3>White T-shirt</h3>
+            <p class="price">Ksh 500</p>
+            <button>Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="black-jeans.jpeg" alt="Black Jeans">
+            <h3>Black Jeans</h3>
+            <p class="price">Ksh 1800</p>
+            <button>Add to Cart</button>
+        </div>
+    </section>
+
+    <button onclick="openCartModal()" style="font-size: 20px;"><i class="fas fa-shopping-cart"></i> View Cart</button>
+
+    <div id="cart-modal" aria-hidden="true">
+        <div class="modal-content">
+            <span onclick="closeCartModal()" style="cursor:pointer; float: right;" aria-label="Close cart">&times;</span>
+            <h2>Shopping Cart</h2>
+            <ul id="cart-items"></ul>
+        </div>
+    </div>
+
+    <section id="payment">
+        <h2>Payment Methods</h2>
+        <p>Select your preferred payment method:</p>
+        <div id="payment-options" style="display: flex; gap: 20px; justify-content: center;">
+            <button onclick="payWithMpesa()" style="padding: 10px; background-color: green; color: white; border: none; cursor: pointer; border-radius: 5px;">Pay with M-Pesa</button>
+            <button onclick="payWithCard()" style="padding: 10px; background-color: blue; color: white; border: none; cursor: pointer; border-radius: 5px;">Pay with Card</button>
+            <button onclick="payWithPayPal()" style="padding: 10px; background-color: #f6b93b; color: black; border: none; cursor: pointer; border-radius: 5px;">Pay with PayPal</button>
+        </div>
+    </section>
+
+    <div id="payment-form" style="display: none; margin: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 id="selected-method"></h3>
+        <p>Fill in your details below:</p>
+        <form id="dummy-payment-form">
+            <label for="name">Name:</label><br>
+            <input type="text" id="name" name="name" placeholder="Your Name" required><br><br>
+
+            <label for="details">Payment Details:</label><br>
+            <input type="text" id="details" name="details" placeholder="e.g., Card Number or M-Pesa Code" required><br><br>
+
+            <button type="submit" style="padding: 10px; background-color: #333; color: white; border: none; cursor: pointer; border-radius: 5px;">Submit Payment</button>
+        </form>
+    </div>
+
+    <section id="about">
+        <h2>About us</h2>
+        <p>We are a clothing hub located at Yaya center. Explore our fantastic selection of elegant dresses,fashionable tshirts,cozy jackets,and durable jeans. Elevate your wardroe with our high quality,trendy pieces. </p>
+    </section>
+
+    <section id="contact">
+        <h2><i class="fas fa-phone"></i> Contact Us</h2>
+        <p>Phone: <a href="tel:0701293782" style="color: goldenrod; text-decoration: none;">0701293782</a></p>
+        <p>Message: <a href="sms:0701293782" style="color: goldenrod; text-decoration: none;">0701293782</a></p>
+        <p>Email: <a href="mailto:contact@luwejafashionhub.com" style="color: gold; text-decoration: none;">contact@luwejafashionhub.com</a></p>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Luweja Fashion Hub. All rights reserved.</p>
+    </footer>
+</body>
+</html>
